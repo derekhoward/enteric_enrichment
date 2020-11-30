@@ -3,6 +3,7 @@
 # REQ: barcodes.tsv, features.tsv, matrix.mtx
 library(readr)
 library(dplyr)
+library(tidyr)
 library(magrittr)
 library(Seurat)
 library(here)
@@ -15,7 +16,6 @@ meta <- meta[-1,] # drop first row (type info)
 
 gene_universe <- read_delim(here('./data/gene_symbol_annotations/AllenInstitute_custom_Agilent_Array.txt'), delim = '\t')
 # some genes are stuck together with sep = ';' 
-library(tidyr)
 gene_universe %<>% separate_rows(Gene_symbol, sep=';')
 gene_universe <- unique(gene_universe$Gene_symbol)
 length(gene_universe)
@@ -116,3 +116,72 @@ final_ranks <- normalized_expression %>% pivot_wider(names_from='cell_type', val
 dir.create(here('./data/processed'))
 write_csv(final_ranks, here('./data/processed/ent_neurons_glia_ranks.csv'))
 
+#############################################################################################
+# Processing dataset with all human data
+#############################################################################################
+human <- Read10X(data.dir = './data/hli', gene.column=1)
+
+genes_assayed <- rownames(human)
+class(genes_assayed)
+overlap <- intersect(genes_assayed, gene_universe)
+
+length(overlap)
+# select only overlap between gene_universe and genes_assayed 
+human[overlap,]
+#############################################################################################
+# exploring working on chunks of data
+meta %>% group_by(Dataset) %>% tally()
+
+# select just human data for all cells
+human_celltypes <- meta %>%
+  filter(Dataset == 'Human colon all cells (10X)') %>% 
+  select(Annotation) %>% unique() %>% .$Annotation
+
+human_meta <- meta %>%
+  filter(Dataset == 'Human colon all cells (10X)')
+
+human_meta %>% 
+  group_by(Annotation) %>% 
+  tally() %>% 
+  arrange(desc(n))
+
+#############################################################################################
+# Process all celltypes in chunks
+#############################################################################################
+celltype_means <- list()
+for (celltype in human_celltypes) {
+  ids <- human_meta %>% filter(Annotation == celltype) %>% .$NAME
+  data_subset <- human[overlap, ids]
+  subset_mean <- Matrix::rowMeans(data_subset)
+  
+  celltype_means[[celltype]] <- subset_mean
+}
+
+celltype_means <- as.data.frame(celltype_means)
+celltype_means$gene_symbol <- rownames(celltype_means) 
+celltype_means <- as_tibble(celltype_means) %>% select(gene_symbol, everything())
+
+#############################################################################################
+celltype_means_long <- celltype_means %>% 
+  pivot_longer(-gene_symbol, values_to='meanExp', names_to='cell_type')
+
+celltype_means_long %<>% mutate(log1Exp = log(meanExp+1))
+
+celltype_means_long %>% 
+  select(-meanExp) %>% 
+  pivot_wider(names_from='cell_type', values_from='log1Exp') %>% 
+  write_csv(here('./data/processed/all_ent_logExp.csv'))
+
+normalized_expression <- celltype_means_long %>% 
+  group_by(gene_symbol) %>% 
+  mutate(log1ExpZ = (log1Exp - mean(log1Exp)) / sd(log1Exp)) %>% 
+  select(-meanExp, -log1Exp)
+
+final_ranks <- normalized_expression %>%
+  group_by(cell_type) %>% 
+  mutate(log1ExpZRank = rank(log1ExpZ)) %>%
+  select(-log1ExpZ) %>% 
+  pivot_wider(names_from='cell_type', values_from='log1ExpZRank')
+
+dir.create(here('./data/processed'))
+write_csv(final_ranks, here('./data/processed/all_ent_ranks.csv'))
