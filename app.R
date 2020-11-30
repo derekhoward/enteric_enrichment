@@ -31,7 +31,8 @@ ui <- fluidPage(
         inputId = 'dataset',
         label = 'Dataset:',
         choices = c(
-          'Enteric neurons and glia'
+          'Enteric neurons and glia',
+          'Enteric cells'
         )
       ),
       textAreaInput(
@@ -91,26 +92,85 @@ server <- function(input, output) {
     
     # load reference data
     if (input$dataset == 'Enteric neurons and glia') {
-      ranks_matrix <- read_csv(here('./data/processed/ent_neurons_glia_ranks.csv'))
+      ranks_matrix <- read_csv(here('data/processed/ent_neurons_glia_ranks.csv'))
       unique_genes <- ranks_matrix$gene_symbol
       paste('loaded data')
       
       # could be useful to load in raw expression data instead of just ranks matrix in order to plot expression values
       
       #load('./data/processed/developing_cortical_zones_expression_matrix.Rdata', verbose = TRUE)
-      enteric_expression <- read_csv(here('./data/processed/ent_neurons_glia_logExp.csv'))
+      enteric_expression <- read_csv(here('data/processed/ent_neurons_glia_logExp.csv'))
       tidy_expression <- pivot_longer(enteric_expression, -gene_symbol, names_to='cell_id', values_to = 'logExp')
       #tidy_expression <- cortical_zones_expression_matrix %>%
       #  gather(key = zones, value = expression,-gene_symbol)
       
       #target_gene_symbols <- 'Human'
+      cell_types <- tribble(
+        ~ cell_id, ~ cell_type,
+        'PEMN_1', 'putative excitatory motor neurons 1',
+        'PEMN_2', 'putative excitatory motor neurons 2',
+        'PEMN_3', 'putative excitatory motor neurons 3',
+        'PEMN_4', 'putative excitatory motor neurons 4',
+        'PIMN_1', 'putative inhibitory motor neurons 1',
+        'PIMN_2', 'putative inhibitory motor neurons 2',
+        'PIMN_3', 'putative inhibitory motor neurons 3',
+        'PIMN_4', 'putative inhibitory motor neurons 4',
+        'PIMN_5', 'putative inhibitory motor neurons 5',
+        'PIN_1', 'putative inhibitory neurons 1',
+        'PIN_2', 'putative inhibitory neurons 2',
+        'PSN', 'putative sensory neurons',
+        'PSVN_1', 'putative secretomotor/vasodilator neurons 1',
+        'PSVN_2', 'putative secretomotor/vasodilator neurons 2',
+        'Glia_1', 'glia 1',
+        'Glia_2', 'glia 2',
+        'Glia_3', 'glia 3',
+        'Glia_4', 'glia 4',
+        'Glia_5', 'glia 5',
+        'Glia_6', 'glia 6'
+      )
       
-      cleaned_gene_list <- convert2human(input_genes = cleaned_gene_list, in_species = input$species)
+      #cleaned_gene_list <- convert2human(input_genes = cleaned_gene_list, in_species = input$species)
       
     } else {
-      paste('error')
+      ranks_matrix <- read_csv(here('./data/processed/all_ent_ranks.csv'))
+      unique_genes <- ranks_matrix$gene_symbol
+      paste('loaded data')
+      
+      enteric_expression <- read_csv(here('data/processed/all_ent_logExp.csv'))
+      tidy_expression <- pivot_longer(enteric_expression, -gene_symbol, names_to='cell_id', values_to = 'logExp')
+      
+      cell_types <- tribble(
+        ~ cell_id, ~ cell_type,
+        'Adipose', 'Adipose',
+        'Epithelial', 'Epithelial',
+        'Fibroblast_1', 'Fibroblast 1',
+        'Fibroblast_2', 'Fibroblast 2',
+        'Glia_1', 'Glia 1',
+        'Glia_2', 'Glia 2',
+        'Glia_3', 'Glia 3',
+        'H3', 'Patient specific - H3',
+        'ICCs', 'ICCs',
+        'Lymphatic', 'Lymphatic',
+        'Macrophage', 'Macrophage',
+        'Mesothelial', 'Mesothelial',
+        'MHC.I_H1', 'Patient specific - MHC.I H1',
+        'MHC.I_H9', 'Patient specific - MHC.I H9',
+        'Myocyte_1', 'Myocyte 1',
+        'Myocyte_2', 'Myocyte 2',
+        'Myocyte_3', 'Myocyte 3',
+        'Myocyte_4', 'Myocyte 4',
+        'Myocyte_5', 'Myocyte 5',
+        'Neuron', 'Neuron',
+        'OXPHOS_H3', 'Patient specific - OXPHOS H3',
+        'Pericytes', 'Pericytes',
+        'T_cells', 'T cells',
+        'Vascular_1', 'Vascular 1',
+        'Vascular_2', 'Vascular 2'
+      )
     }
     print(paste0("Before time taken:", Sys.time() - start))
+    
+    cleaned_gene_list <- convert2human(input_genes = cleaned_gene_list, in_species = input$species)
     
     #for indices - use dplyr for ease
     forIndices <- as_tibble(ranks_matrix$gene_symbol)
@@ -132,29 +192,7 @@ server <- function(input, output) {
     
     print(paste0("Wilcox time taken:", Sys.time() - start))
     
-    cell_types <- tribble(
-      ~ cell_id, ~ cell_type,
-      'PEMN_1', 'putative excitatory motor neurons 1',
-      'PEMN_2', 'putative excitatory motor neurons 2',
-      'PEMN_3', 'putative excitatory motor neurons 3',
-      'PEMN_4', 'putative excitatory motor neurons 4',
-      'PIMN_1', 'putative inhibitory motor neurons 1',
-      'PIMN_2', 'putative inhibitory motor neurons 2',
-      'PIMN_3', 'putative inhibitory motor neurons 3',
-      'PIMN_4', 'putative inhibitory motor neurons 4',
-      'PIMN_5', 'putative inhibitory motor neurons 5',
-      'PIN_1', 'putative inhibitory neurons 1',
-      'PIN_2', 'putative inhibitory neurons 2',
-      'PSN', 'putative sensory neurons',
-      'PSVN_1', 'putative secretomotor/vasodilator neurons 1',
-      'PSVN_2', 'putative secretomotor/vasodilator neurons 2',
-      'Glia_1', 'glia 1',
-      'Glia_2', 'glia 2',
-      'Glia_3', 'glia 3',
-      'Glia_4', 'glia 4',
-      'Glia_5', 'glia 5',
-      'Glia_6', 'glia 6'
-    )
+
     
     # these are the values for the results table
     table %<>% arrange(-AUROC)
