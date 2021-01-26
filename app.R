@@ -31,8 +31,8 @@ ui <- fluidPage(
         inputId = 'dataset',
         label = 'Dataset:',
         choices = c(
-          'Enteric neurons and glia',
-          'Enteric cells'
+          'Enteric cells',
+          'Enteric neurons and glia'
         )
       ),
       textAreaInput(
@@ -55,7 +55,8 @@ ui <- fluidPage(
       tags$b("Data made available by the Broad institute's Single Cell Portal:"),
       br(),
       tags$a(href="https://singlecell.broadinstitute.org/single_cell/study/SCP1038/the-human-and-mouse-enteric-nervous-system-at-single-cell-resolution", "The human and mouse enteric nervous system at single cell resolution"),
-      br()
+      hr(),
+      tags$a(href="https://github.com/derekhoward/enteric_enrichment", "Source code")
     ),
     
     # Main panel for displaying outputs ----
