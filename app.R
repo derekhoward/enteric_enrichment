@@ -81,8 +81,6 @@ server <- function(input, output) {
   output$summary <- renderPrint({
     cat("\nResults will load here when complete")
     cat("\n")
-    #print(gc())
-    #print(Sys.info()['nodename'])
   })
   
   observeEvent(input$submit, {
@@ -98,14 +96,9 @@ server <- function(input, output) {
       paste('loaded data')
       
       # could be useful to load in raw expression data instead of just ranks matrix in order to plot expression values
-      
-      #load('./data/processed/developing_cortical_zones_expression_matrix.Rdata', verbose = TRUE)
       enteric_expression <- read_csv(here('data/processed/ent_neurons_glia_logExp.csv'))
       tidy_expression <- pivot_longer(enteric_expression, -gene_symbol, names_to='cell_id', values_to = 'logExp')
-      #tidy_expression <- cortical_zones_expression_matrix %>%
-      #  gather(key = zones, value = expression,-gene_symbol)
-      
-      #target_gene_symbols <- 'Human'
+
       cell_types <- tribble(
         ~ cell_id, ~ cell_type,
         'PEMN_1', 'putative excitatory motor neurons 1',
@@ -130,7 +123,6 @@ server <- function(input, output) {
         'Glia_6', 'glia 6'
       )
       
-      #cleaned_gene_list <- convert2human(input_genes = cleaned_gene_list, in_species = input$species)
       
     } else {
       ranks_matrix <- read_csv(here('./data/processed/all_ent_ranks.csv'))
@@ -203,46 +195,10 @@ server <- function(input, output) {
     table %<>% left_join(cell_types, by='cell_id') %>%
       select(cell_id, cell_type, AUROC, pValue, adjusted_P)
     
-    
-    #table$order
-#    if (input$dataset == 'Cortical layers from Developing Human Brain Atlas') {
-#      zone_order <-c("ventricular zone", "subventricular zone", "intermediate zone", "subplate zone", "cortical plate",
-#                     "marginal zone","subpial granular zone")
-#      x <- tibble(laminar_order = 1:7, zone = zone_order)
-#    } else {
-#      #from Blueprint documentation: http://download.alleninstitute.org/nhp/Prenatal_Macaque_LMD_Microarray/neuroanatomical_guides_for_LMD_sampling/V1/
-#      #The layers annotated for LMD are indicated in the right panel and include marginal zone (mz), layer 2 (2), layer 2/3 (2/3), layer 3 (3), 
-#      zone_order <- c("white matter", "marginal zone", "layer I", "layer II", "layer II/III", "layer III", 
-#                      #outer cortical plate (cpo), layer 4 (4), layer 4A (4A), layer 4B (4B), layer 4Ca (4Ca), layer 4Cb (4Cb), layer 5 (5), layer 6 (6), cortical plate (cp), 
-#                      "cortical plate (outer)",  "layer IV", "layer V", "layer VI", "cortical plate", 
-#                      #inner cortical plate (cpi), subplate (sp), intermediate zone (iz), intermediate cell dense zone (icd), transitory migratory zone (tmz), 
-#                      "cortical plate (inner)","subplate","intermediate zone","transitory migratory zone", 
-#                      #outer fiber (plexiform) zone (ofz), subventricular zone (sz), outer subventricular zone (szo), inner fiber (plexiform) zone (ifz), 
-#                      "outer fiber zone","subventricular zone","subventricular zone (outer)", "inner fiber zone", 
-                      #inner subventricular zone (szi), outer ventricular zone (vzo), inner ventricular zone (vzi), and ventricular zone (vz). 
-#                      "subventricular zone (inner)","ventricular zone (outer)","ventricular zone (inner)", "ventricular zone")
-#      zone_order <- rev(zone_order) #reverse so it lines up with human direction
-      
-#      x <- tibble(laminar_order = 1:length(zone_order), zone = zone_order)
-#    }
-#    table <- inner_join(table, x, by = 'zone')
-
-    #      zone_order <-c("ventricular zone", "subventricular zone", "intermediate zone", "subplate zone", "cortical plate",
-    #                     "marginal zone","subpial granular zone")
-    #      x <- tibble(laminar_order = 1:7, zone = zone_order)
-    
-
-    
     selected_values <- reactive({
       req(cleaned_gene_list)
       selected_values <- tidy_expression %>% filter(gene_symbol %in% cleaned_gene_list)
-      #selected_values <- selected_values %<>% left_join(cell_types, by='cell_id')
-      #selected_values %<>% mutate(zones = factor(zones, levels = zone_order))
     })
-    
-    # these are the values used for the plot
-    #selected_values <- tidy_expression %>% filter(gene_symbol %in% cleaned_gene_list)
-    #selected_values %<>% mutate(zones = factor(zones, levels=c("ventricular zone", "subventricular zone", "intermediate zone", "subplate zone", "cortical plate", "marginal zone", "subpial granular zone")))
     
     output$summary <- renderPrint({
       #count of intersection of submitted genes with total gene list
